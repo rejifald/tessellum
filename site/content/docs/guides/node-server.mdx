@@ -205,7 +205,7 @@ const root = await bind({
 // every read after this line is synchronous, including deep inside request handlers.
 ```
 
-`chain` is the only full-replacement spelling: it discards the zerno's declared refs in favor of the ordered links you give it, and resolution errors list the refs it dropped — a fallback that quietly stopped being consulted still shows up in the failure.
+`chain` is the only full-replacement *fallback* spelling (its overlay sibling `merge()` is on the [Non-goals](/docs/reference/non-goals) page): it discards the zerno's declared refs in favor of the ordered links you give it, and resolution errors list the refs it dropped — a fallback that quietly stopped being consulted still shows up in the failure.
 
 Fetching from SSM is async, and the color is in the types: every link carries its impl's color, and a single async link recolors the whole binding to an `AsyncBinding` — a type only `komirka/async`'s `bind` produces. `await bind(entries).snapshot()` is the async door, and it is async exactly **once**: the pin resolves everything up front and hands back a plain sync-read `Snapshot`.
 

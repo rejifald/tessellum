@@ -13,7 +13,7 @@ description: The complete provisional API surface — entries, the descriptor, b
 
 ```ts
 import { zerno, defineZernos, refresh, identityOf, keepLastGood } from "komirka";
-import { literal, chain, provider } from "komirka";         // universal wiring combinators (pure data)
+import { literal, chain, merge, provider } from "komirka";  // universal wiring combinators (pure data)
 import type { Zerno, Snapshot, LiveBinding, AsyncBinding, Scope, ConfigOf } from "komirka";
 
 // pick ONE bind per entrypoint — the entry point is what grants capability:
@@ -103,8 +103,14 @@ env(zerno, "PLATFORM_NAME")   // REF RENAME: patches the matching declared ref I
 file(zerno, "/etc/app/x")     //   preserving declared fallbacks; UnknownWiringError if the
 provider(zerno, impl, key?)   //   zerno declares no ref of that kind. Name/path REQUIRED.
 chain(zerno, provider(ssm, "/prod/sg"), env("SG_KEY"))
-                             // the ONLY full-replacement spelling — errors list dropped refs;
-                             //   links carry color: one async link → AsyncBinding
+                             // the ONLY full-replacement FALLBACK spelling — first present
+                             //   wins; errors list dropped refs; one async link → AsyncBinding
+merge(zerno, literal({...}), file("/etc/app/preset.json"), file(localPath))
+                             // OBJECT-valued zernos: ordered per-key OVERLAY, last wins (vs
+                             //   chain's first-present fallback). Full replacement; shallow
+                             //   (nested/arrays replaced wholesale), no deletes, single
+                             //   exposure, validated once; non-object layer = MergeLayerError;
+                             //   async layer → AsyncBinding
 env(group, { prefix: "MAILER_", overrides: { password: "SECRET_PW" } })
                              // group wiring: ONE entry per zerno ever (DuplicateWiringError);
                              //   overrides escape the prefix; the discriminant is a member
@@ -414,7 +420,7 @@ Writes: `WriteConflictError` · `NotWritableError` · `WriteFailedError` ·
 `WriteMangledError` · `VerifyCapabilityError` · `ProviderContractError`.
 Shapes & wiring: `LivenessViolationError` · `ReservedKeyError` · `UnknownWiringError` ·
 `WiringCollisionError` · `WiringExposureError` · `WiringSkewError` ·
-`DuplicateWiringError` · `NoWiringError`.
+`DuplicateWiringError` · `NoWiringError` · `MergeLayerError`.
 Secret plane: `SecretLiteralError` · `ExposureMigrationError` · `DescriptorError`.
 Every error names the zerno key, the layer, and a next step. For secret zernos, BYO
 validator text is untrusted (validators echo received values): reports carry issue counts

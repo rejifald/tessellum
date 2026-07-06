@@ -256,7 +256,8 @@ parameters carry the tuple inference the call shapes depend on).
   helper (a shipped adapter becomes a shadow second contract form).
 - **Wiring (supersedes the sources argument AND `rebind`)** — resolved: per-entry
   combinators — `env(zerno, "NAME")` renames a declared ref in place preserving fallbacks,
-  `chain()` is the only full replacement, groups wire as one entry with
+  `chain()` is the only full-replacement *fallback* (`merge()`, added later, is the
+  per-key overlay sibling), groups wire as one entry with
   `{ prefix, overrides }`, bare entries resolve declared refs against the bind entry
   point's natural defaults. Combinators are pure JSON data (provider impls declare
   `{ id, color }`); capability enters only at the bind entry point (the Workers bag is a
@@ -264,6 +265,16 @@ parameters carry the tuple inference the call shapes depend on).
   (async pin, `literal()` entries). Effective names still propagate to every artifact,
   error message, and the leak scan's name union; library renames use declared fallback
   chains, not deployment wiring. See [Binding](/docs/concepts/binding).
+- **Profile-merge cascade (`extends`/presets)** — resolved (author decision): scope a
+  minimal `merge()` overlay combinator, not a cascade DSL. `merge(zerno, ...layers)` does an
+  ordered per-key overlay of partial objects (last-wins) for object-valued zernos — distinct
+  from `chain()`'s first-present-wins fallback — bounded to shallow (nested objects and
+  arrays replaced wholesale), no deletes, single exposure, and validated-once against the
+  object schema (`MergeLayerError` for a non-object layer). It is pure wiring, not identity,
+  like `chain()`. Deep-merge, array-element merge, per-key deletes, and `extends`-across-a-
+  file-format stay a **non-goal**: unbounded merge semantics belong in userland that
+  pre-flattens a single raw before binding. See [Binding](/docs/concepts/binding) and
+  [Non-goals](/docs/reference/non-goals).
 
 ## 11. Final naming — resolved
 

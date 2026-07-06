@@ -361,6 +361,44 @@ validation):
   bag is a required *bind option* (`bind(entries, { env })`), and capability only ever
   enters at the bind entry point.
 
+### Fallback vs overlay: `chain()` and `merge()`
+
+`chain()` resolves a *whole value* by precedence — the first link that produces one wins. A
+second combinator, `merge()`, resolves an *object* value by overlay — every layer
+contributes its keys, and a later layer overrides an earlier one key by key. It is the one
+bounded answer to "a config file that `extends` a preset":
+
+```ts
+import { bind, file } from "komirka/node";
+import { merge, literal } from "komirka";
+
+// built-in defaults ⊕ preset ⊕ local — combined per top-level key, last wins
+const cfg = bind(merge(settings,
+  literal({ retries: 3, timeoutMs: 1000 }), // a "base" is just the first literal layer
+  file("/etc/app/preset.json"),
+  file(userLocalPath),
+));
+```
+
+`merge()` is for object-valued zernos and stays deliberately shallow — the boundaries are
+part of the contract, not caveats:
+
+- **Shallow, last-wins per top-level key.** A nested object is replaced wholesale by a later
+  layer, never deep-merged; arrays are replaced wholesale, never element-merged.
+- **No deletes.** A layer overrides keys; it cannot remove one a lower layer set.
+- **Single exposure, validated once.** The overlay produces one value at the zerno's
+  exposure — no per-key secret/public split — and the whole object is validated against the
+  zerno's schema *after* overlay (partial layers are never validated alone). A layer whose
+  raw is not a JSON object is `MergeLayerError`; `__proto__`/`constructor`/`prototype` keys
+  are rejected before the validator runs.
+
+Like `chain()`, `merge()` is a full replacement of the zerno's declared refs (its errors
+enumerate what it dropped), it is pure JSON-representable wiring — deployment reality, never
+identity — and an async provider layer colors the whole binding `AsyncBinding`. Anything
+past the boundaries above (deep-merge, array-merge, deletes, an `extends` cascade across a
+file format) is not a combinator: precompute the flat object in userland and hand it in as
+one source. [Non-goals](/docs/reference/non-goals) covers why the cascade DSL stops here.
+
 App-wide transforms exist, but only as a *restatement* of data the manifest declares for
 the target — `bind(entries, { transform: { prefix: "MYAPP_", rename: { ... } } })` — and
 the wiring digest covers them: a composition root whose wiring diverges from the

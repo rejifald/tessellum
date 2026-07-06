@@ -136,7 +136,8 @@ Every feature must pass all of these. "It would be convenient" never overrides a
 - **P20 — Wiring is deployment reality, never contract.** A zerno's declared refs are the
   library's contract (identity); *where that lives on this platform* is the deployment's
   wiring, spelled inline per entry (`env(zerno, "NAME")` renames a declared ref in place,
-  preserving fallbacks; `chain()` is the only full-replacement spelling; group wiring is
+  preserving fallbacks; `chain()` is the only full-replacement *fallback* spelling and
+  `merge()` the per-key *overlay* spelling for object-valued zernos; group wiring is
   one entry with `{ prefix, overrides }`) — identity-preserving by definition. Wiring
   combinators are **pure JSON-representable data** (zerno identity ref + ref kind +
   strings + provider impl *ids*; impls declare `{ id, color }`): capability is granted
@@ -284,6 +285,20 @@ Catalogued from adversarial review. Each entry: the failure, then the rule that 
   Promise coerced into a connection string. *Rule:* provider impls declare
   `{ id, color }` (a compile error otherwise — never a silently-sync guess); one async
   link colors the chain; `load()` does not exist.
+- **Fallback is not merge.** `chain()` takes the whole value from the first source that has
+  one (presence, first-present-wins); overlaying *partial objects* key by key is a
+  different operation, and conflating the two silently returns half a config. *Rule:*
+  `merge(zerno, ...layers)` is a separate combinator for object-valued zernos — an ordered
+  per-key overlay, last-writer-wins, validated **once** as a whole against the object
+  schema. Boundaries stated in the same breath and enforced: **shallow** (a nested object
+  is replaced wholesale, never deep-merged), **arrays replaced wholesale** (no element
+  merge), **no delete** (a layer cannot remove a lower layer's key), **single exposure**
+  (the merged value carries the zerno's one exposure — no per-key secret/public mix), and
+  **null-prototype** (a layer whose raw is not a JSON object is `MergeLayerError`;
+  `__proto__`/`constructor`/`prototype` keys are rejected before validation). Built-in
+  defaults as a base layer are an explicit first `literal()` — `default` stays a
+  whole-value fallback, not a merge base. Anything past these bounds (deep-merge,
+  array-merge, deletes, `extends` cascades) is precompute-in-userland, not a combinator.
 - **Degraded types must not point at missing members.** The widening fail-safe types a
   binding as the most restrictive view — if the runtime object lacked those members,
   green builds would crash at runtime. *Rule:* one runtime shape, three type views:
@@ -579,7 +594,18 @@ gate.
   is a secrets manager growing inside a config library; redaction-by-construction plus the
   exposure gates capture ~90% of real leak vectors at ~0 ceremony.
 - **No environment-cascade DSL** (dev/staging/prod profile merging) — environments are
-  different sources plus overrides, one layer.
+  different sources plus overrides, one layer. The single bounded carve-out is `merge()`:
+  an explicit per-key *overlay* combinator for object-valued zernos (shallow, arrays
+  replaced wholesale, no deletes, single exposure, validated once), distinct from
+  `chain()`'s first-present-wins *fallback*. An `extends`/preset cascade with deep-merge,
+  array-merge, or per-key deletes is unbounded merge semantics — precompute a flat set of
+  raws in userland and hand it in as one source.
+- **Not per-call parameterization** — this is per-runtime/per-deployment configuration:
+  one value per process per zerno (P19's *uniform* clause). A value that varies per call,
+  per request, or per user is a function parameter, and routing it through a zerno is
+  over-adoption. The two-line litmus: if it can change while the process runs it is state
+  (P16); if it changes per invocation it is a parameter. The library-authors guide carries
+  the decision checklist.
 - **No runtime registry, no derived-zerno expression language, no reachability-analysis
   codegen** (the manifest is explicit).
 - **No leased/dynamic credentials** — Vault dynamic DB creds, STS session tokens, and

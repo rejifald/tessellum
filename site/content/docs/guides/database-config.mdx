@@ -157,7 +157,7 @@ await cfg.ready();
 
 `bind` is inert — it never performs I/O. Each `provider()` entry is async-colored, so the result types as an `AsyncBinding` automatically; there is no separate async constructor. `await cfg.ready()` is the eager startup line: one batched `read` (chunked against `limits.maxReadBatch` when needed), then resolve and validate every bound zerno, failing fast with a single aggregated `MissingConfigError` that names everything wrong at once, not just the first thing.
 
-Wiring is per entry, so one binding mixes transports freely. A zerno that should read Parameter Store but fall back to an env var spells the whole chain out — `chain` is the only full-replacement wiring, and if the zerno declared fallback refs of its own, errors will list exactly what the chain dropped:
+Wiring is per entry, so one binding mixes transports freely. A zerno that should read Parameter Store but fall back to an env var spells the whole chain out — `chain` is the only full-replacement *fallback* wiring, and if the zerno declared fallback refs of its own, errors will list exactly what the chain dropped:
 
 ```ts
 import { chain } from "komirka";

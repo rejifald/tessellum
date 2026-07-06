@@ -12,6 +12,21 @@ A library never knows where its configuration comes from. The app might read pro
 
 There is no `provide()`, no global registry, no ambient fallback. Your API accepts a scope as an argument, and that is the entire integration surface.
 
+## Config or parameter? What belongs in a zerno
+
+Before you ship a descriptor, decide the value belongs in configuration at all. A library exposes two kinds of tunables, and only one is config:
+
+- **Per-deployment settings** — a log level, a pool size, an endpoint. One value per process, fixed for the deployment's lifetime, sourced from the environment or a provider. *This is config — make it a zerno.*
+- **Per-call parameters** — a weight, a threshold, a limit passed to a function and varying per invocation. *This is parameterization — keep it in the function signature.*
+
+The checklist is one question on each axis:
+
+- **Does it vary per call, per request, or per user?** → parameter. A zerno is *uniform* — one value per process (P19). A value that needs per-invocation context is, definitionally, an argument; threading it through a binding fights the model, because you would be re-binding per request.
+- **Can it change while the process runs?** → state, not config — unless it is an explicitly `freshness: "live"` re-readable source. See [Non-goals](/docs/reference/non-goals).
+- **Is it fixed for a deployment and read from env/providers?** → config. Make it a zerno, give it a `doc`, and ship it.
+
+Over-adoption — turning per-call arguments into zernos — is the more common error than under-adoption, and it is the one to guard against: it inflates your config surface and pushes callers toward re-creating a binding per request instead of passing an argument. When in doubt, a value a caller might reasonably vary between two adjacent calls is a parameter.
+
 ## Ship your zernos
 
 Export your descriptors from your package. Because construction is inert, this module is safe to import from anywhere — including browser bundles; the `komirka` core entry supplies no natural sources by construction, so a bare env or file ref bound there is a `NoWiringError`, not a silent read.

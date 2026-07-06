@@ -43,6 +43,27 @@ app.use((req, res, next) => {
 
 A slow-moving operational dial in a ConfigMap-mounted file is config. "Show the new checkout to 10% of EU users" is not.
 
+## Configuration, not per-call parameterization
+
+Two litmus tests draw the outer boundary of "config," on two different axes. The freshness axis, from the top of this page: *if it can change while the process runs, it is state, not config.* The arity axis: **if it varies per call, per request, or per user, it is a parameter, not config.** A zerno is per-runtime, per-deployment — one value per process per zerno (P19's *uniform* clause). Routing a per-invocation argument through a zerno is over-adoption; it belongs in the function signature.
+
+```ts
+// Config — one value per process, from the environment. A zerno.
+const logLevel = zerno({
+  key: "LOG_LEVEL",
+  schema: z.enum(["debug", "info", "warn", "error"]),
+  exposure: "public",
+  default: "info",
+});
+
+// Parameterization — varies per call. NOT a zerno; it is an argument.
+function rank(query: string, opts: { weightRecency: number; limit: number }) {
+  /* ... */
+}
+```
+
+The decision checklist for library authors — *does this value vary per call?* → parameter; *is it fixed for a deployment and sourced from env/providers?* → config — lives in the [library-authors guide](/docs/guides/library-authors). The common mistake is the over-adopting direction: a per-call knob turned into a zerno shows up as a binding that must be re-created per request, the exact anti-pattern the per-request-pin model exists to avoid.
+
 ## .env parsing in core
 
 Core does not read `.env` files, and never grows a dotenv dependency. The runtimes already own this job — and one of them actively fights libraries that try to do it too. Bun loads `.env` natively, so a library that self-loads produces double-loading conflicts and precedence fights. Node has had this built in for a while:
@@ -133,6 +154,31 @@ const logLevel = zerno({
 
 Staging and production run the *same descriptor* against different environment contents. Nothing in the descriptor knows which environment it is in — which is precisely what keeps `identityOf(logLevel)` stable across every deploy target, and keeps descriptors JSON-round-trippable instead of mini-programs.
 
+### Fallback is precedence; merge is overlay
+
+Two operations get confused here, so the library names both and ships only the bounded one. **Fallback** — `chain()`, and a descriptor's ordered `sources` — takes the *whole value* from the first source that has one: precedence, first-present-wins. **Merge** overlays *partial objects* key by key. For the common "a config file `extends` a shared preset" shape — `built-in defaults ⊕ preset ⊕ local`, combined per key — there is exactly one combinator, `merge()`, for object-valued zernos:
+
+```ts
+import { bind, file } from "komirka/node";
+import { merge, literal } from "komirka";
+
+// last layer wins per top-level key; a "base" is just the first literal layer
+const cfg = bind(merge(settings,
+  literal({ retries: 3, timeoutMs: 1000 }), // built-in defaults, explicit
+  file("/etc/app/preset.json"),             // shared preset
+  file(userLocalPath),                       // local overrides
+));
+```
+
+What `merge()` deliberately is *not* — the boundaries stated in the same breath (P17):
+
+- **Shallow.** A nested object at a key is replaced wholesale by a later layer, never deep-merged. Arrays are replaced wholesale — no element merge.
+- **No deletes.** A layer can override a key but not remove one a lower layer set.
+- **Single exposure.** The overlay produces one value at the zerno's one exposure; there is no per-key secret/public split inside a merged object.
+- **Validated once.** The overlaid object is validated as a whole against the zerno's schema — partial layers are never validated alone. A layer whose raw is not a JSON object is `MergeLayerError`; prototype-polluting keys are rejected before the validator runs.
+
+Past those bounds — deep-merge, array-element merge, per-key deletes, an `extends` chain resolved across a file format — is unbounded merge semantics, and *that* is the cascade DSL this library still refuses. Precompute the flat result in userland and hand it in as one source. `merge()` covers the shallow 90% and refuses to grow the other 10% inside a config library.
+
 ## Runtime registry
 
 No global `provide()`, no ambient binding, no side-effectful registration at import time. Ever. Three reasons:
@@ -212,10 +258,12 @@ komirka bake --check
 | You want | Out of scope because | Reach for |
 | --- | --- | --- |
 | Feature flags, targeting | State, not config; core runs no loops | A flag SDK alongside; `freshness: "live"` files for ops dials |
+| Per-call / per-request tuning | Config is per-process, uniform (P19) | A function parameter — keep it out of the binding |
 | `.env` parsing | Runtimes load env natively; Bun fights self-loaders | `node --env-file`, Bun's loader, dotenv as a userland provider impl |
 | Vault/SSM clients in core | Zero-dep, browser-safe core | Community provider impls via the `komirka/async` bind |
 | Sealed boxes, TTL, rotation | SDKs take strings; sync reads; secrets-manager scope | Serialization guard, redaction, `refresh()`, a real secrets manager |
 | Environment cascades | Environments are sources plus overrides | Ordered `sources`; same descriptor, different deploys |
+| Deep / `extends` preset cascades | Merge semantics are unbounded past shallow | `merge()` for shallow per-key overlay; precompute flat raws in userland for deep/array/delete |
 | Runtime registry | Tree-shaking, import-order side effects | Explicit `bind` at the composition root; the bake manifest |
 | Derived-zerno expressions | Derivation is code; JSON round-trip | Plain functions; `epoch()`-keyed rebuilds |
 | Bundle-scanning codegen | Unsound in both directions | Explicit manifest plus the `bake --check` coverage report |
