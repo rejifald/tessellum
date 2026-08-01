@@ -6,6 +6,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["-C", "site", "dev"],
       "port": 3000
+    },
+    {
+      "name": "bake-demo",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["-C", "demo", "dev"],
+      "port": 5173
     }
   ]
 }

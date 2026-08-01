@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tessellum bake demo — baked handles</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        font: 16px/1.6 ui-sans-serif, system-ui, sans-serif;
+        margin: 3rem auto;
+        max-width: 40rem;
+        padding: 0 1.5rem;
+      }
+      #app {
+        font-family: ui-monospace, monospace;
+        padding: 0.75rem 1rem;
+        border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Baked client target</h1>
+      <p>Config read through baked handles (no descriptor, no zod):</p>
+      <div id="app"></div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

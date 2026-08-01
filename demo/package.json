@@ -1,0 +1,23 @@
+{
+  "name": "tessellum-bake-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Hand-written bake artifacts in a real Vite SPA — the ergonomics spike for `tessellum bake`. Nothing here is generated; these files are the specification the generator must reproduce.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:control": "DEMO_CONTROL=1 vite build",
+    "build:both": "pnpm build && pnpm build:control",
+    "measure": "node ./measure.mjs",
+    "prove": "pnpm build:both && pnpm measure",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vite": "^7.1.12"
+  }
+}

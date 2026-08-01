@@ -1,0 +1,5 @@
+# Self-contained, exactly like `site/`: the repo root is deliberately NOT a
+# multi-package workspace, so the demo carries its own lockfile and is installed
+# and built independently (`cd demo && pnpm install`).
+allowBuilds:
+  esbuild: true
