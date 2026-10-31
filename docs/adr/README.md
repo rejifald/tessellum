@@ -23,3 +23,4 @@ the registry links to each one as its question gets settled.
 | [0009](./0009-attestation-strictness.md) | Attestation strictness for rewired deployments (`attest`: mandatory on client targets, opt-in on servers) | Accepted |
 | [0010](./0010-server-bake-target-semantics.md) | Server bake-target semantics (the wiring module checks presence, nothing else) | Accepted |
 | [0011](./0011-ship-node-file-source.md) | Ship the Node file source in v0.1 (makes `freshness: "live"` runnable) | Accepted |
+| [0013](./0013-identity-hash-and-wire-format.md) | Identity hashing and the content-address wire format (xxh128 preimage, one rendered form, `$when` shape, `schemaId`, `Provenance`) | Proposed |
