@@ -16,6 +16,38 @@ Once a question is settled with a full decision record, its entry graduates to a
 | 5 | Final naming | Decided: package `tessellum`, primitive `tessera` |
 | 6 | v0.1 proof gate | Ship only if the demo clearly wins |
 
+The table above is the **first-pass** set — the pre-implementation review ([#32](https://github.com/rejifald/tessellum/issues/32)), now settled with records. A **second-pass, pre-*build*** review since filed a larger open set ([#41–63](https://github.com/rejifald/tessellum/issues/41)); it is the true gate on v0.1, and it is mapped below.
+
+## Design-readiness hardening — the v0.1 gate (#41–63)
+
+These findings are sequenced by milestone in **[ROADMAP.md](https://github.com/rejifald/tessellum/blob/main/ROADMAP.md)**. Each graduates to an ADR pointer as it settles; this table is the running map of *proposed* versus *still open*. Milestone **A** is the critical path (it gates the first line of the core); **B** is the bake surface; **C** the last edges; **D** the spec→build handoff.
+
+| # | Question | Milestone | Status / current lean |
+| --- | --- | --- | --- |
+| 42 | Identity hash implementation & timing | A | **Proposed — [ADR 0013](https://github.com/rejifald/tessellum/blob/main/docs/adr/0013-identity-hash-and-wire-format.md)**: vendored xxh128 + a scoped JCS encoder, computed lazily and `WeakMap`-memoized off the frozen descriptor, one canonicalizer shared with bake; measured size delta owed at implementation |
+| 41 | Identity rendering & digest width | A | **Proposed — ADR 0013**: one rendered form `` `<scheme>:xxh128:<32-hex>` ``; the `` `<scheme>v1\|…` `` form is hash-preimage-only |
+| 43 | `sources` vs `refs` field name | A | **Proposed — ADR 0013**: `sources`, input and wire alike |
+| 54 | `schemaId` mechanism | A | **Proposed — ADR 0013**: the explicit `version` or absent; no introspective fingerprint (P4); the `std1\|…` hash is struck; P4's ladder reference qualified to StitchAPI's ADR 0004 |
+| 55 | `Provenance` shape | A | **Proposed — ADR 0013**: one shape — `{ source, resolvedKey, version? }` |
+| 44 | `$when` relation wire shape | A | **Proposed — ADR 0013** (format reserved); the `when()` runtime defers to v0.2 (ADR 0012) |
+| 45 | Error-class contract | A | Open → ADR 0014: base class + structural brand + stable `code` + cross-realm detection predicate; and what the zero-import baked shim throws |
+| 46 | One scenario, two errors | A | Open → ADR 0014: reconcile `AmbiguousTesseraMembershipError` vs `DuplicateWiringError` |
+| 49 | Wiring-digest mechanics | B | Open → ADR 0015: the preimage, each side's comparand, and missing-lockfile behavior |
+| 47 | `config.manifest.lock.json` schema | B | Open → ADR 0015 |
+| 48 | Lockfile vs `manifest.json` in bake output | B | Open → ADR 0015 |
+| 50 | Manifest "constrained context" mechanism | B | Open → ADR 0016: name a real mechanism or downgrade the claim (P17) |
+| 51 | Leak-scan spec | B | Open → ADR 0017: entropy measure, thresholds, and pass/fail fixtures |
+| 52 | Client-reachable tessera set | B | Open → ADR 0018: what computes it |
+| 53 | Bake JSON-Schema emission vs P4 | B | Open → ADR 0019: declare document types on the tessera, or drop the artifact |
+| 63 | Browser-safe dev-check guard | B | Open: not `process.env.NODE_ENV` (not a browser expression) |
+| 62 | ADR 0003 bundle numbers | B | Open: reproduce from a committed fixture, or correct (≈166× claimed vs 16.4× measured) |
+| 56 | `tessellum/async` browser reachability | C | Open → ADR 0020 |
+| 57 | Per-feature size budgets (P6) | D | Open: stand them up in `.size-limit.json` + the README table |
+| 58 | Internal architecture seams | D | Open: record pipeline order, the source-injection seam, the scope table, cache/epoch |
+| 59 | Spikes as committed tests | D | Open: re-create the lost spike reference implementations |
+| 60 | §12 proof-gate demo | D | Open: repo shape, unpublished-build consumption, CI, comparison rubric |
+| 61 | Site availability markers | D | Open: mark deferred surface so the site does not overclaim at v0.1 |
+
 ## 1. Is `default` part of the identity hash?
 
 **Resolved — yes, `default` (presence and value) stays in the identity hash.** Ratified by author decision; recorded inline rather than as a separate ADR, mirroring the parallel `freshness`-in-the-hash resolution in §10. Two descriptors that differ only in a default are treated as genuinely different contracts: a read through the "wrong" copy is a loud `DescriptorMismatchError` (carrying a paste-able `unify`), never a silent divergence where `cfg.unwrap()` returns `3` in one module and `5` in another. The residual cost is real and accepted — bumping a default is an identity-breaking change a library author must release like one — but a loud, fixable error beats a silent wrong value, which is the whole thesis of the identity system. If real-world friction ever shows this generating more `unify` boilerplate than it prevents bugs, Option B below gets a second hearing; until then the burden of proof sits on the silent side. The analysis that led here:
