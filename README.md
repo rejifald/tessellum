@@ -53,7 +53,7 @@ export const poolSize = tessera({
 // Node — eager validation of exactly what this entrypoint binds, at boot
 import { bind, env } from "tessellum/node";
 const cfg = bind({ db: env(dbUrl, "PLATFORM_PG_URL"), pool: poolSize });
-// → LiveBinding  (env source → live polling)
+// → Snapshot  (pinned, immutable; LiveBinding only if a bound tessera is live)
 
 cfg.unwrap(dbUrl);
 // → "postgres://localhost:5432/mydb"  (T, the validated string)
@@ -85,11 +85,11 @@ cfg.unwrap(dbUrl);
 
 ```ts
 // Browser — no binding at all: config arrives as baked literals, secrets structurally excluded
-import { config } from "./config.baked";
-// → Scope<{ DATABASE_URL: string, DB_POOL_SIZE: number }>  (type-only, baked shim)
+import { config, poolSize } from "./config.baked";
+// → Scope<{ DB_POOL_SIZE: number }>  (type-only, baked shim; secrets never reach the browser)
 
-config.unwrap(dbUrl);
-// → "https://api.example.com"  (public literal, baked at build time)
+config.unwrap(poolSize);
+// → 10  (public literal, baked at build time)
 ```
 
 ## Return values
