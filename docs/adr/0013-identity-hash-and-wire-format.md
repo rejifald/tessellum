@@ -287,7 +287,14 @@ to this one.
   [`conditional`](../../site/content/docs/concepts/conditional.mdx); the `$when` node added beside
   the `$variants` example; P4 gains the "StitchAPI's ADR 0004" qualifier in
   [`principles.md`](../../principles.md) and its mirror; `Provenance` defined in
-  [`api`](../../site/content/docs/reference/api.mdx).
+  [`api`](../../site/content/docs/reference/api.mdx). The vendor-fingerprint wording is struck
+  too (D4): [`identity`](../../site/content/docs/concepts/identity.mdx) :26 and :38 →
+  `schemaId` is the explicit `version` or absent, no vendor fingerprint;
+  [`tessera`](../../site/content/docs/concepts/tessera.mdx) :67 and :118;
+  [`api`](../../site/content/docs/reference/api.mdx) :384;
+  [`library-authors`](../../site/content/docs/guides/library-authors.mdx) :177 and :183; and P4's
+  ladder in [`principles.md`](../../principles.md) :59 and :350 (and its mirror) states that in
+  this library only the explicit-`version` rung is usable, besides the StitchAPI qualifier above.
 - **A measured size number is still owed.** The ADR sets the budget constraint and the fallback,
   but the real delta lands with the implementing PR — an honest deferral, not a decision left open.
 - **`in`-sorting is a small surprise.** Two `when` predicates that differ only in `in` order are
